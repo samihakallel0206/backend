@@ -2,6 +2,7 @@ const Role = require("../models/Role");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const removeUploadImg = require("../utils/removeUploadImg");
 // -----------------------REGISTER---------------
 exports.register = async (req, res) => {
   try {
@@ -17,6 +18,8 @@ exports.register = async (req, res) => {
     //check email exist
     const existUser = await User.findOne({ email });
     if (existUser) {
+      //!1
+      removeUploadImg(req.file)
       return res.status(400).json({
         success: false,
         errors: [{ message: "Email already exists" }],
@@ -24,6 +27,8 @@ exports.register = async (req, res) => {
     }
     //role exist +normalisation
     if (!roleTitre || typeof roleTitre !== "string") {
+      //!2
+      removeUploadImg(req.file)
       return res.status(400).json({
         success: false,
         errors: [{ message: "Role required!!" }],
@@ -33,13 +38,15 @@ exports.register = async (req, res) => {
     const normRoleTitre = roleTitre.trim().toUpperCase();
     const existRole = await Role.findOne({ titre: normRoleTitre });
     if (!existRole) {
+      //!3
+      removeUploadImg(req.file)
       return res.status(400).json({
         success: false,
         errors: [{ message: "Role Invalid" }],
       });
     }
     // console.log(existRole)
-    //todohash password
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     //creation user
     const newUser = new User({
@@ -47,7 +54,7 @@ exports.register = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      //!rajouter l'image
+      // rajouter l'image
       profilePic,
       role: existRole._id,
     });
@@ -60,6 +67,8 @@ exports.register = async (req, res) => {
       user: newUser,
     });
   } catch (error) {
+    //!4
+    removeUploadImg(req.file)
     res.status(500).json({
       success: false,
       errors: [{ message: "Fail to create user!!" }],
@@ -72,7 +81,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     //check du email?
-  
+
     const { email, password } = req.body;
     const foundUser = await User.findOne({ email }).populate("role");
     if (!foundUser) {
@@ -102,8 +111,8 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 2*60*60*1000 // 2h
-    })
+      maxAge: 2 * 60 * 60 * 1000, // 2h
+    });
     //response
     res.status(200).json({
       success: true,
@@ -130,9 +139,8 @@ exports.logout = async (req, res) => {
     });
     res.status(200).json({
       success: true,
-      message:["Logout Successfully"]
-      
-    })
+      message: ["Logout Successfully"],
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -145,5 +153,22 @@ exports.logout = async (req, res) => {
 
 exports.current = async (req, res) => {
   try {
-  } catch (error) {}
+    //  req.user?
+    const foundUser = await User.findById(req.user.id).populate("role");
+    if (!foundUser) {
+      return res.status(404).json({
+        success: false,
+        errors: [{ message: "User not found" }],
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      user: foundUser,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      errors: [{ message: "Server error" }],
+    });
+  }
 };

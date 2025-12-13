@@ -11,9 +11,13 @@ app.use(cookieParser())
 //connexion to DB
 const connectDB = require("./config/connectDB");
 const seedRoles = require("./config/seed/seedRoles");
+//!
+const seedAdmin = require("./config/seed/seedAdmin");
 connectDB().then(async () => {
   try {
     await seedRoles()
+    //!
+    await seedAdmin()
   } catch (error) {
     console.log("Erreur while seeding", error.message);
   }

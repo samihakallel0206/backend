@@ -1,7 +1,8 @@
 const fs = require("fs");
 
 const removeUploadImg = (file) => {
-  if (!file || !filePath) return;
+  //! erreur
+  if (!file || !file.path) return;   // ❌filePath
   fs.unlink(file.path, (err) => {
     if (err && err.code !== "ENOENT") {
       console.log("Failed To remove uploadFile", err.message);
